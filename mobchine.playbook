@@ -1,0 +1,77 @@
+---
+- hosts: mobchines
+  vars: 
+    users:
+    - username: zee
+      shell: /bin/bash
+      github: zspencer
+    - username: jtu
+      shell: /bin/bash
+      github: jtu0
+    - username: bhaibel
+      shell: /bin/bash
+      github: bhaibel
+
+
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+  tasks:
+  - name: "ensure sudoers dont need to put in a password"
+    lineinfile:
+      path: /etc/sudoers
+      regexp: '^%sudo ALL='
+      line: '%sudo   ALL=(ALL:ALL) NOPASSWD:ALL'
+
+  - name: "install developer tools"
+    package: name={{ item }} state=latest
+    with_items:
+      - git
+      - build-essential
+
+  - name: "install a lightweight desktop"
+    package: name={{ item }} state=latest
+    with_items:
+      - xfce4
+      - xfce4-goodies
+      - firefox
+
+  - name: "download the tiger vnc server"
+    get_url:
+      url: https://bintray.com/tigervnc/stable/download_file?file_path=ubuntu-16.04LTS%2Famd64%2Ftigervncserver_1.8.0-1ubuntu1_amd64.deb
+      dest: /tmp/tigervncserver_1.8.0-1ubuntu_amd64.deb
+
+  - name: "install tigervnc"
+    apt:
+      deb: /tmp/tigervncserver_1.8.0-1ubuntu_amd64.deb
+
+  - name: "download atom"
+    get_url:
+      url: https://github.com/atom/atom/releases/download/v1.19.3/atom-amd64.deb
+      dest: /tmp/atom-amd64.deb
+  - name: "install atom"
+    apt:
+      deb: /tmp/atom-amd64.deb
+
+  - name: Create users
+    with_items: "{{ users }}"
+    user: name={{ item.username }} shell={{ item.shell }} groups=sudo state=present
+  - name: "Set authorized key"
+    with_items: "{{ users }}"
+    authorized_key: user={{ item.username }} key=https://github.com/{{ item.github }}.keys exclusive=yes state=present
+
+  - name: "make xstartup file"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    file: path=/home/{{item.username}}/.xstartup state=touch mode=0755
+
+  - name: "Configure xstartup"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    blockinfile:
+      path: "/home/{{ item.username }}/.xstartup"
+      block: |
+        #!/bin/bash
+        xrdb $HOME/.Xresources
+        startxfce4 &
+
