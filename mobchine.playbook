@@ -1,6 +1,6 @@
 ---
 - hosts: mobchines
-  vars: 
+  vars:
     users:
     - username: zee
       shell: /bin/bash
@@ -28,6 +28,17 @@
     with_items:
       - git
       - build-essential
+      - gcc
+      - autoconf
+      - bison
+      - libssl-dev
+      - libyaml-dev
+      - libreadline6-dev
+      - zlib1g-dev
+      - libncurses5-dev
+      - libffi-dev
+      - libgdbm3
+      - libgdbm-dev
 
   - name: "install a lightweight desktop"
     package: name={{ item }} state=latest
@@ -36,22 +47,21 @@
       - xfce4-goodies
       - firefox
 
-  - name: "download the tiger vnc server"
-    get_url:
-      url: https://bintray.com/tigervnc/stable/download_file?file_path=ubuntu-16.04LTS%2Famd64%2Ftigervncserver_1.8.0-1ubuntu1_amd64.deb
-      dest: /tmp/tigervncserver_1.8.0-1ubuntu_amd64.deb
+  - name: "check if tigervnc exists"
+    stat: path=/usr/bin/vncserver
+    register: tigervnc
 
   - name: "install tigervnc"
-    apt:
-      deb: /tmp/tigervncserver_1.8.0-1ubuntu_amd64.deb
+    apt: deb=https://bintray.com/tigervnc/stable/download_file?file_path=ubuntu-16.04LTS%2Famd64%2Ftigervncserver_1.8.0-1ubuntu1_amd64.deb
+    when: tigervnc.stat.exists != True
 
-  - name: "download atom"
-    get_url:
-      url: https://github.com/atom/atom/releases/download/v1.19.3/atom-amd64.deb
-      dest: /tmp/atom-amd64.deb
+  - name: "check if atom exists"
+    stat: path=/usr/bin/atom
+    register: atom
+
   - name: "install atom"
-    apt:
-      deb: /tmp/atom-amd64.deb
+    apt: deb=https://github.com/atom/atom/releases/download/v1.19.3/atom-amd64.deb
+    when: atom.stat.exists != True
 
   - name: Create users
     with_items: "{{ users }}"
@@ -75,3 +85,67 @@
         xrdb $HOME/.Xresources
         startxfce4 &
 
+  - name: "Install rbenv"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    git: repo=https://github.com/rbenv/rbenv.git dest=/home/{{ item.username }}/.rbenv
+
+  - name: "ensure there's a rbenv-plugins directory"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    file: state=directory path=/home/{{ item.username }}/.rbenv/plugins
+
+  - name: "Install ruby-build"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    git: repo=https://github.com/rbenv/ruby-build.git dest=/home/{{ item.username }}/.rbenv/plugins/ruby-build
+
+  - name: "Ensure rbenv is on the path"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    lineinfile:
+      state: present
+      path: /home/{{ item.username }}/.bashrc
+      line: export PATH="$HOME/.rbenv/bin:$PATH"
+
+  - name: "Ensure rbenv shims are on the path"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    lineinfile:
+      state: present
+      path: /home/{{ item.username }}/.bashrc
+      line: eval "$(rbenv init -)"
+
+
+  - name: "install michigan-benefits specific dependencies"
+    package: name={{ item }} state=latest
+    with_items:
+      - libxml2-dev
+      - pdftk
+      - libpq-dev
+      - postgresql
+      - postgresql-contrib
+      - libsqlite3-dev
+      - nodejs
+      - python-psycopg2
+      - xvfb
+
+  - name: "check if chromedriver exists"
+    stat: path=/usr/local/bin/chromedriver
+    register: chromedriver
+
+  - name: "install chromedriver"
+    unarchive: remote_src=yes dest=/usr/local/bin src=https://chromedriver.storage.googleapis.com/2.31/chromedriver_linux64.zip
+    when: chromedriver.stat.exists != True
+
+  - name: "check if chrome exists"
+    stat: path=/usr/bin/google-chrome
+    register: chrome
+
+  - name: 'install chrome'
+    apt: deb=https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+
+  - name: 'create postgresql users'
+    with_items: "{{ users }}"
+    become_user: postgres
+    postgresql_user: role_attr_flags="SUPERUSER,CREATEDB,CREATEROLE" name="{{ item.username }}"
