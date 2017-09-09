@@ -135,7 +135,7 @@
     register: chromedriver
 
   - name: "install chromedriver"
-    unarchive: remote_src=yes dest=/usr/local/bin src=https://chromedriver.storage.googleapis.com/2.31/chromedriver_linux64.zip
+    unarchive: remote_src=yes dest=/usr/local/bin src=https://chromedriver.storage.googleapis.com/2.32/chromedriver_linux64.zip
     when: chromedriver.stat.exists != True
 
   - name: "check if chrome exists"
