@@ -128,6 +128,25 @@
       path: /home/{{ item.username }}/.bashrc
       line: eval "$(rbenv init -)"
 
+
+  - name: "ensure there's a homesick repos directory"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    file: state=directory path=/home/{{ item.username }}/.homesick/repos
+
+  - name: "install homeshick"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    git: repo=https://github.com/andsens/homeshick.git dest=/home/{{ item.username }}/.homesick/repos/homeshick
+
+  - name: "place homeshick bin are on the path"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    lineinfile:
+      state: present
+      path: /home/{{ item.username }}/.bashrc
+      line: source "$HOME/.homesick/repos/homeshick/homeshick.sh"
+
   - name: "install michigan-benefits specific dependencies"
     package: name={{ item }} state=latest
     with_items:
