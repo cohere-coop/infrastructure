@@ -50,7 +50,6 @@
       - zlib1g-dev
       - libncurses5-dev
       - libffi-dev
-      - libgdbm3
       - libgdbm-dev
 
   - name: "install a lightweight desktop"
@@ -59,13 +58,11 @@
       - xubuntu-desktop
       - firefox
 
-  - name: "check if tigervnc exists"
-    stat: path=/usr/bin/vncserver
-    register: tigervnc
-
-  - name: "install tigervnc"
-    apt: deb=https://bintray.com/tigervnc/stable/download_file?file_path=ubuntu-16.04LTS%2Famd64%2Ftigervncserver_1.8.0-1ubuntu1_amd64.deb
-    when: tigervnc.stat.exists != True
+  - name: "install VNC"
+    package: name={{ item }} state=latest
+    with_items:
+      - tigervnc-standalone-server
+      - tigervnc-xorg-extension
 
   - name: "check if atom exists"
     stat: path=/usr/bin/atom
@@ -77,7 +74,7 @@
 
   - name: Create users
     with_items: "{{ users }}"
-    user: name={{ item.username }} shell={{ item.shell }} groups=sudo,docker state=present
+    user: name={{ item.username }} shell={{ item.shell }} groups=sudo state=present
   - name: "Set authorized key"
     with_items: "{{ users }}"
     authorized_key: user={{ item.username }} key=https://github.com/{{ item.github }}.keys exclusive=yes state=present
@@ -85,13 +82,13 @@
   - name: "make xstartup file"
     with_items: "{{ users }}"
     become_user: "{{ item.username }}"
-    file: path=/home/{{item.username}}/.xstartup state=touch mode=0755
+    file: path=/home/{{item.username}}/.vnc/xstartup state=touch mode=0755
 
   - name: "Configure xstartup"
     with_items: "{{ users }}"
     become_user: "{{ item.username }}"
     blockinfile:
-      path: "/home/{{ item.username }}/.xstartup"
+      path: "/home/{{ item.username }}/.vnc/xstartup"
       block: |
         #!/bin/bash
         xrdb $HOME/.Xresources
@@ -151,7 +148,6 @@
     package: name={{ item }} state=latest
     with_items:
       - libxml2-dev
-      - pdftk
       - libpq-dev
       - postgresql
       - postgresql-contrib
