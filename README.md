@@ -1,9 +1,9 @@
 # Infrastructure
 
-For better group screen sharing, I have used a shared virtual machine that we
+For better group screen sharing, I have a shared virtual machine that we
 all vnc into.
 
-Run `ssh -A -L 5901:localhost:5901 3.17.121.29` and then use a VNC client of
+Run `ssh -A -L 5901:localhost:5901 52.9.218.53` and then use a VNC client of
 your choice (I recommend tigervnc, as that's the same version the server is
 running) to connect to `vnc://localhost:5901` and you will be able to join a
 session in progress.
@@ -15,7 +15,7 @@ To start your own vnc session:
 - ssh into the machine
 - Run `vncserver :<ASINGLEDIGIT> -alwaysshared -disconnectclients=0`, where
   ASINGLEDIGIT is either 2 for betsy or 3 for jennifer
-- run `ssh -A -L 590X:localhost:590X 3.17.121.29` to forward the vnc port to
+- run `ssh -A -L 590X:localhost:590X 52.9.218.53` to forward the vnc port to
   your machine. (Where X is the number you used for ASINGLEDIGIT earlier)
 - Connect to `vnc://localhost:590X` with your VNC client of choice!
 

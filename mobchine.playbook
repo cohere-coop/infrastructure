@@ -11,6 +11,9 @@
     - username: bhaibel
       shell: /bin/bash
       github: bhaibel
+    - username: jacksonlatka
+      shell: /bin/bash
+      github: jacksonlatka
 
 
   become: yes
@@ -79,6 +82,10 @@
     with_items: "{{ users }}"
     authorized_key: user={{ item.username }} key=https://github.com/{{ item.github }}.keys exclusive=yes state=present
 
+  - name: "make .vnc folder"
+    with_items: "{{ users }}"
+    become_user: "{{ item.username }}"
+    file: path=/home/{{item.username}}/.vnc/ state=directory mode=0755
   - name: "make xstartup file"
     with_items: "{{ users }}"
     become_user: "{{ item.username }}"
